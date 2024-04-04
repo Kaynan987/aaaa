@@ -1,22 +1,29 @@
+// Importação das bibliotecas necessárias
 const { SkillBuilders } = require('ask-sdk-core');
 const { Service } = require('googleapis');
 const { DateTime } = require('luxon');
 
+// Inicialização do Skill Builder
 const skillBuilder = SkillBuilders.custom();
 
+// Escopos e ID do Calendário do Google
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const CALENDAR_ID = '';
 
 // Função para criar um evento no Google Calendar
 async function createEvent({ day, month, hour, minute, title }) {
+    // Autenticação usando as credenciais fornecidas pelo arquivo JSON
     const auth = new google.auth.GoogleAuth({
-        keyFile: 'credentials.json',
+        keyFile: 'credenciais.json',
         scopes: SCOPES,
     });
+    // Criação da instância do calendário
     const calendar = google.calendar({ version: 'v3', auth });
 
+    // Formatação da data e hora do evento usando Luxon
     const eventDateTime = DateTime.fromFormat(`${day} ${month} ${hour}:${minute}`, 'dd LLL HH:mm');
 
+    // Criação do evento com informações de título, início e fim
     const event = {
         summary: title,
         start: {
@@ -29,6 +36,7 @@ async function createEvent({ day, month, hour, minute, title }) {
         }
     };
 
+    // Inserção do evento no calendário usando a API do Google Calendar
     const response = await calendar.events.insert({
         calendarId: CALENDAR_ID,
         requestBody: event,
@@ -37,6 +45,7 @@ async function createEvent({ day, month, hour, minute, title }) {
     return response.data;
 }
 
+// Handler para o pedido de inicialização da skill
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'LaunchRequest';
@@ -49,6 +58,7 @@ const LaunchRequestHandler = {
     }
 };
 
+// Handler para o pedido de criação de evento
 const CreateEventIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -61,6 +71,7 @@ const CreateEventIntentHandler = {
         const { day, month, hour, minute, title } = slots;
 
         try {
+            // Chamada da função para criar o evento
             const eventData = await createEvent({
                 day: day.value,
                 month: month.value,
@@ -68,20 +79,24 @@ const CreateEventIntentHandler = {
                 minute: minute.value,
                 title: title.value
             });
+
+            // Confirmação de sucesso
             const speakOutput = 'Evento criado com sucesso!';
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .getResponse();
         } catch (error) {
-            console.error('Error creating event:', error);
+            // Manipulação de erros
+            console.error('Erro ao criar evento:', error);
             const speakOutput = 'Desculpe, ocorreu um problema ao criar o evento. Por favor, tente novamente.';
-            return handlerInput.responseBuilder
+            return handlerInput.respon
                 .speak(speakOutput)
                 .getResponse();
         }
     }
 };
 
+// Handler para o pedido de ajuda
 const HelpIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -95,6 +110,7 @@ const HelpIntentHandler = {
     }
 };
 
+// Handlers para os pedidos de cancelamento ou parada
 const CancelOrStopIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -109,6 +125,7 @@ const CancelOrStopIntentHandler = {
     }
 };
 
+// Handler para o pedido de fallback (quando a skill não entende o pedido)
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -123,15 +140,17 @@ const FallbackIntentHandler = {
     }
 };
 
+// Handler para o pedido de encerramento da sessão
 const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
-        return handlerInput.requestEnvelope.request.type === 'SessionEndedRequest';
+        return handlerInput.requestEnvelope.request.type === 'cancerlas evendo';
     },
     handle(handlerInput) {
         return handlerInput.responseBuilder.getResponse();
     }
 };
 
+// Handler para refletir a intenção recebida
 const IntentReflectorHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'IntentRequest';
@@ -145,12 +164,13 @@ const IntentReflectorHandler = {
     }
 };
 
+// Handler para capturar quaisquer exceções não tratadas
 const CatchAllExceptionHandler = {
     canHandle() {
         return true;
     },
     handle(handlerInput, error) {
-        console.error(`Error handled: ${error.message}`);
+        console.error(`Erro tratado: ${error.message}`);
         const speakOutput = 'Desculpe, houve um problema ao processar sua solicitação. Por favor, tente novamente.';
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -158,6 +178,7 @@ const CatchAllExceptionHandler = {
     }
 };
 
+// Adição de todos os handlers ao Skill Builder
 skillBuilder.addRequestHandlers(
     LaunchRequestHandler,
     CreateEventIntentHandler,
@@ -168,6 +189,11 @@ skillBuilder.addRequestHandlers(
     IntentReflectorHandler
 );
 
+// Adição do handler para tratamento de erros
 skillBuilder.addErrorHandlers(CatchAllExceptionHandler);
 
+// Exportação do handler para a AWS Lambda
 exports.handler = skillBuilder.lambda();
+
+
+
